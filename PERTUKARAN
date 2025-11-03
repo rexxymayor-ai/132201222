@@ -1,0 +1,95 @@
+--// Jawa Hub — Interact Type Toggle (P)
+-- Tekan [P] untuk mengganti antara HOLD <-> CLICK
+-- Aman, tanpa error, dan dengan notifikasi modern
+
+local UserInputService = game:GetService("UserInputService")
+local HOLD_MODE = true
+local TOGGLE_KEY = Enum.KeyCode.P
+
+------------------------------------------------------
+-- 🪄 GUI Notifikasi
+------------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "JawaHubInteractNotifier"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local NotifFrame = Instance.new("Frame")
+NotifFrame.Size = UDim2.new(0, 220, 0, 40)
+NotifFrame.Position = UDim2.new(1, -240, 0, 40)
+NotifFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+NotifFrame.BackgroundTransparency = 0.2
+NotifFrame.Visible = false
+NotifFrame.Parent = ScreenGui
+Instance.new("UICorner", NotifFrame)
+
+local NotifLabel = Instance.new("TextLabel", NotifFrame)
+NotifLabel.Size = UDim2.new(1, -20, 1, 0)
+NotifLabel.Position = UDim2.new(0, 10, 0, 0)
+NotifLabel.BackgroundTransparency = 1
+NotifLabel.Font = Enum.Font.GothamBold
+NotifLabel.TextColor3 = Color3.new(1, 1, 1)
+NotifLabel.TextSize = 16
+NotifLabel.TextXAlignment = Enum.TextXAlignment.Left
+NotifLabel.Text = "Mode: HOLD"
+
+local function showNotification(text, color)
+	NotifLabel.Text = text
+	NotifLabel.TextColor3 = color or Color3.new(1, 1, 1)
+	NotifFrame.Visible = true
+	NotifFrame.BackgroundTransparency = 0.2
+
+	task.spawn(function()
+		task.wait(2.5)
+		for i = 0, 1, 0.05 do
+			NotifFrame.BackgroundTransparency = 0.2 + i
+			task.wait(0.05)
+		end
+		NotifFrame.Visible = false
+	end)
+end
+
+------------------------------------------------------
+-- 🧠 Logic Ubah Mode Prompt
+------------------------------------------------------
+local function safeSetPrompt(prompt)
+	if not prompt:IsA("ProximityPrompt") then return end
+	pcall(function()
+		if HOLD_MODE then
+			prompt.HoldDuration = 0.8
+		else
+			prompt.HoldDuration = 0
+		end
+	end)
+end
+
+local function applyModeToAll()
+	for _, obj in ipairs(workspace:GetDescendants()) do
+		if obj:IsA("ProximityPrompt") then
+			safeSetPrompt(obj)
+		end
+	end
+	showNotification(("Mode: %s"):format(HOLD_MODE and "HOLD" or "CLICK"),
+		HOLD_MODE and Color3.fromRGB(255, 200, 50) or Color3.fromRGB(50, 255, 100))
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+	if obj:IsA("ProximityPrompt") then
+		task.wait(0.2)
+		safeSetPrompt(obj)
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == TOGGLE_KEY then
+		HOLD_MODE = not HOLD_MODE
+		task.spawn(applyModeToAll)
+	end
+end)
+
+applyModeToAll()
+showNotification("Jawa Hub | Interact Mode Active", Color3.fromRGB(100, 200, 255))
+
+print("✅ Jawa Hub | Tekan [P] untuk ubah mode interaksi HOLD / CLICK")
